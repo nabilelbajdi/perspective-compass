@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   Brain, 
   Heart, 
@@ -8,10 +8,13 @@ import {
   Zap,
   Send,
   MessageCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  RotateCcw
 } from 'lucide-react'
 import { getPersonaPerspective, getPersonaInfo } from './services/openai'
 import ChatMessage from './components/ChatMessage'
+import { saveConversation, loadConversation, clearConversation, getConversationInfo } from './utils/storage'
 
 function App() {
   const [input, setInput] = useState('')
@@ -19,6 +22,21 @@ function App() {
   const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // Load conversation on startup
+  useEffect(() => {
+    const savedConversation = loadConversation()
+    if (savedConversation && savedConversation.messages.length > 0) {
+      setMessages(savedConversation.messages)
+    }
+  }, [])
+
+  // Auto-save conversation whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      saveConversation(messages)
+    }
+  }, [messages])
 
   const personas = [
     { 
@@ -64,6 +82,14 @@ function App() {
       color: 'from-orange-500 to-red-400'
     }
   ]
+
+  const handleClearConversation = () => {
+    if (window.confirm('Are you sure you want to clear the conversation? This cannot be undone.')) {
+      setMessages([])
+      clearConversation()
+      setError(null)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -137,6 +163,17 @@ function App() {
                   Gain insights from different therapeutic perspectives
                 </p>
               </div>
+              
+              {/* Clear conversation button */}
+              {messages.length > 0 && (
+                <button
+                  onClick={handleClearConversation}
+                  className="flex items-center space-x-2 px-4 py-2 bg-error/10 border border-error/20 text-error rounded-lg hover:bg-error/20 transition-all duration-200"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span className="text-sm">Clear Chat</span>
+                </button>
+              )}
             </div>
           </div>
         </header>
@@ -230,6 +267,16 @@ function App() {
                   </div>
                 ) : (
                   <div className="p-6">
+                    {/* Conversation status */}
+                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-neutral-border/30">
+                      <div className="text-xs text-text-muted">
+                        {messages.length} message{messages.length !== 1 ? 's' : ''} • Auto-saved
+                      </div>
+                      <div className="text-xs text-text-muted">
+                        {messages.length > 0 && new Date(messages[messages.length - 1].timestamp).toLocaleString()}
+                      </div>
+                    </div>
+                    
                     <div className="space-y-6 max-h-[500px] overflow-y-auto">
                       {messages.map((message, index) => {
                         // Detect persona switch for visual indicator
