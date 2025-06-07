@@ -7,14 +7,18 @@ import {
   Building, 
   Zap,
   Send,
-  MessageCircle
+  MessageCircle,
+  AlertCircle
 } from 'lucide-react'
+import { getPersonaPerspective, getPersonaInfo } from './services/openai'
+import ChatMessage from './components/ChatMessage'
 
 function App() {
   const [input, setInput] = useState('')
   const [selectedPersona, setSelectedPersona] = useState('cbt-therapist')
   const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   const personas = [
     { 
@@ -63,11 +67,53 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!input.trim()) return
+    if (!input.trim() || isLoading) return
 
-    // TODO: Add OpenAI integration
-    console.log('Submitting:', input, 'to persona:', selectedPersona)
+    const userMessage = {
+      role: 'user',
+      content: input.trim(),
+      timestamp: new Date().toISOString()
+    }
+
+    // Add user message immediately
+    setMessages(prev => [...prev, userMessage])
     setInput('')
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      // Get conversation history for context (last 10 messages)
+      const conversationHistory = messages.slice(-10).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+
+      // Get AI response
+      const response = await getPersonaPerspective(
+        selectedPersona,
+        userMessage.content,
+        conversationHistory
+      )
+
+      if (response.success) {
+        const aiMessage = {
+          role: 'assistant',
+          content: response.message,
+          persona: response.persona,
+          timestamp: response.timestamp
+        }
+        setMessages(prev => [...prev, aiMessage])
+      } else {
+        // Handle error
+        setError(response.error)
+        console.error('AI Response Error:', response)
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err)
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const selectedPersonaData = personas.find(p => p.id === selectedPersona)
@@ -182,21 +228,54 @@ function App() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-6 space-y-4">
-                    {messages.map((message, index) => (
-                      <div key={index} className="animate-slide-up">
-                        {/* TODO: Render chat messages */}
-                        <div className="p-4 bg-neutral-border/20 rounded-lg">
-                          {message.content}
+                  <div className="p-6">
+                    <div className="space-y-6 max-h-[500px] overflow-y-auto">
+                      {messages.map((message, index) => (
+                        <ChatMessage 
+                          key={index} 
+                          message={message} 
+                          persona={message.role === 'assistant' ? selectedPersonaData : null}
+                        />
+                      ))}
+                      
+                      {/* Loading indicator */}
+                      {isLoading && (
+                        <div className="flex gap-4 justify-start animate-slide-up">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                              <selectedPersonaData.icon className="w-5 h-5 text-white" />
+                            </div>
+                          </div>
+                          <div className="max-w-[70%]">
+                            <div className="text-sm text-text-muted mb-2 flex items-center gap-2">
+                              <selectedPersonaData.icon className="w-4 h-4" />
+                              <span>{selectedPersonaData.name} is thinking...</span>
+                            </div>
+                            <div className="bg-surface/80 backdrop-blur-md border border-neutral-border/50 rounded-2xl px-4 py-3">
+                              <div className="flex space-x-1">
+                                <div className="w-2 h-2 bg-text-muted rounded-full animate-bounce"></div>
+                                <div className="w-2 h-2 bg-text-muted rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                                <div className="w-2 h-2 bg-text-muted rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
 
               {/* Input Form */}
               <form onSubmit={handleSubmit} className="bg-surface/80 backdrop-blur-md rounded-2xl border border-neutral-border/50 p-6">
+                {/* Error display */}
+                {error && (
+                  <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg flex items-center gap-3 text-error">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <span className="text-sm">{error}</span>
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   <textarea
                     value={input}
