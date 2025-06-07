@@ -1,8 +1,9 @@
 {
-  "name": "aidelve",
+  "name": "perspective-compass",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "An AI-powered app that provides multiple perspectives on your thoughts and feelings",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
