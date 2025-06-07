@@ -72,7 +72,8 @@ function App() {
     const userMessage = {
       role: 'user',
       content: input.trim(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      persona: selectedPersona
     }
 
     // Add user message immediately
@@ -82,8 +83,8 @@ function App() {
     setError(null)
 
     try {
-      // Get conversation history for context (last 10 messages)
-      const conversationHistory = messages.slice(-10).map(msg => ({
+      // Get conversation history for context (longer history for better conversations)
+      const conversationHistory = messages.slice(-12).map(msg => ({
         role: msg.role,
         content: msg.content
       }))
@@ -230,13 +231,23 @@ function App() {
                 ) : (
                   <div className="p-6">
                     <div className="space-y-6 max-h-[500px] overflow-y-auto">
-                      {messages.map((message, index) => (
-                        <ChatMessage 
-                          key={index} 
-                          message={message} 
-                          persona={message.role === 'assistant' ? selectedPersonaData : null}
-                        />
-                      ))}
+                      {messages.map((message, index) => {
+                        // Detect persona switch for visual indicator
+                        const prevMessage = index > 0 ? messages[index - 1] : null
+                        const showPersonaSwitch = message.role === 'assistant' && 
+                          prevMessage && 
+                          prevMessage.role === 'assistant' && 
+                          prevMessage.persona !== message.persona
+
+                        return (
+                          <ChatMessage 
+                            key={index} 
+                            message={message} 
+                            persona={message.role === 'assistant' ? selectedPersonaData : null}
+                            showPersonaSwitch={showPersonaSwitch}
+                          />
+                        )
+                      })}
                       
                       {/* Loading indicator */}
                       {isLoading && (
