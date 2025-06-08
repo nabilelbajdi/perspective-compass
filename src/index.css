@@ -1,10 +1,10 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
 
 @theme {
   /* Emotionally Intelligent Darkness */
-  --color-background: #0D1117;
-  --color-surface: #161B22;
+  --color-background: #000000;
+  --color-surface: #171717;
   --color-primary: #3B82F6;
   --color-secondary: #A855F7;
   --color-text-main: #E5E7EB;
@@ -73,4 +73,14 @@
 
 .animate-slide-up {
   animation: var(--animate-slide-up);
+}
+
+/* Hide scrollbars while keeping functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
 }
