@@ -60,3 +60,7 @@ VITE_OPENAI_API_KEY=your_key_here
 - **Mental health support**: Therapeutic conversations with AI guidance
 - **Decision making**: Different viewpoints on complex choices
 - **Emotional processing**: Safe space for exploring feelings
+
+## Important Notice
+
+This application is designed for educational and self-reflection purposes only. It does not replace professional mental health care, therapy, or medical advice. If you are experiencing a mental health crisis or need professional support, please consult a qualified mental health professional or contact your local emergency services.

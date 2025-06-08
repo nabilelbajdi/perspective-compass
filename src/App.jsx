@@ -612,6 +612,14 @@ function App() {
             </div>
           </div>
         </div>
+        
+        {/* Footer Disclaimer */}
+        <div className={`mt-8 pb-6 text-center text-xs ${
+          isDarkMode ? 'text-text-muted' : 'text-gray-500'
+        }`}>
+          This application is for educational and self-reflection purposes only. 
+          It does not replace professional mental health care or therapy.
+        </div>
       </div>
 
       {/* Custom Clear Confirmation Modal */}
