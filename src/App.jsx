@@ -13,30 +13,40 @@ import {
   Moon
 } from 'lucide-react'
 import { getPersonaPerspective, getPersonaInfo } from './services/openai'
+import { analyzeSentiment } from './services/sentiment'
 import ChatMessage from './components/ChatMessage'
-import { saveConversation, loadConversation, clearConversation, getConversationInfo } from './utils/storage'
+import EmotionalInsights from './components/EmotionalInsights'
+import { saveConversations, loadConversations, clearAllData, loadSentiments, addSentiment } from './utils/storage'
 
 function App() {
   const [input, setInput] = useState('')
   const [selectedPersona, setSelectedPersona] = useState('cbt-therapist')
   const [messages, setMessages] = useState([])
+  const [sentiments, setSentiments] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [showInsights, setShowInsights] = useState(false)
 
-  // Load conversation on startup
+  // Load conversation and sentiments on startup
   useEffect(() => {
-    const savedConversation = loadConversation()
-    if (savedConversation && savedConversation.messages.length > 0) {
-      setMessages(savedConversation.messages)
+    const savedConversations = loadConversations()
+    const savedSentiments = loadSentiments()
+    
+    if (savedConversations && savedConversations.length > 0) {
+      setMessages(savedConversations)
+    }
+    
+    if (savedSentiments && savedSentiments.length > 0) {
+      setSentiments(savedSentiments)
     }
   }, [])
 
   // Auto-save conversation whenever messages change
   useEffect(() => {
     if (messages.length > 0) {
-      saveConversation(messages)
+      saveConversations(messages)
     }
   }, [messages])
 
@@ -92,7 +102,8 @@ function App() {
 
   const confirmClearConversation = () => {
     setMessages([])
-    clearConversation()
+    setSentiments([])
+    clearAllData()
     setError(null)
     setShowClearConfirm(false)
   }
@@ -110,24 +121,37 @@ function App() {
 
     // Add user message immediately
     setMessages(prev => [...prev, userMessage])
+    const currentInput = input.trim()
     setInput('')
     setIsLoading(true)
     setError(null)
 
     try {
-      // Get conversation history for context
-      const conversationHistory = messages.slice(-12).map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }))
+      // Analyze sentiment in parallel with getting AI response
+      const [sentimentResult, response] = await Promise.all([
+        analyzeSentiment(currentInput),
+        (async () => {
+          // Get conversation history for context
+          const conversationHistory = messages.slice(-12).map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }))
 
-      // Get AI response
-      const response = await getPersonaPerspective(
-        selectedPersona,
-        userMessage.content,
-        conversationHistory
-      )
+          return await getPersonaPerspective(
+            selectedPersona,
+            userMessage.content,
+            conversationHistory
+          )
+        })()
+      ])
 
+      // Add sentiment data
+      if (sentimentResult.success) {
+        const updatedSentiments = addSentiment(sentimentResult.sentiment)
+        setSentiments(updatedSentiments)
+      }
+
+      // Handle AI response
       if (response.success) {
         const aiMessage = {
           role: 'assistant',
@@ -137,7 +161,6 @@ function App() {
         }
         setMessages(prev => [...prev, aiMessage])
       } else {
-        // Handle error
         setError(response.error)
         console.error('AI Response Error:', response)
       }
@@ -150,6 +173,17 @@ function App() {
   }
 
   const selectedPersonaData = personas.find(p => p.id === selectedPersona)
+
+  // Show insights page if requested
+  if (showInsights) {
+    return (
+      <EmotionalInsights 
+        sentiments={sentiments} 
+        isDarkMode={isDarkMode}
+        onBack={() => setShowInsights(false)}
+      />
+    )
+  }
 
   return (
     <div className={`min-h-screen font-sans relative ${
@@ -181,6 +215,20 @@ function App() {
               </div>
               
               <div className="flex items-center space-x-4">
+                {/* Insights button */}
+                {sentiments.length > 0 && (
+                  <button
+                    onClick={() => setShowInsights(true)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
+                      isDarkMode 
+                        ? 'bg-surface hover:bg-white/5 text-text-main border border-neutral-border/50' 
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-200'
+                    }`}
+                  >
+                    Emotional Insights
+                  </button>
+                )}
+                
                 {/* Theme toggle */}
                 <button
                   onClick={() => setIsDarkMode(!isDarkMode)}
