@@ -1,65 +1,72 @@
-const STORAGE_KEY = 'perspective-compass-conversations'
+const STORAGE_KEY = 'perspective_compass_data'
+const SENTIMENT_KEY = 'perspective_compass_sentiments'
 
-export function saveConversation(messages) {
+export function saveConversations(conversations) {
   try {
-    const conversationData = {
-      messages,
-      lastUpdated: new Date().toISOString(),
-      messageCount: messages.length
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversationData))
-    return true
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations))
   } catch (error) {
-    console.error('Failed to save conversation:', error)
-    return false
+    console.error('Failed to save conversations:', error)
   }
 }
 
-export function loadConversation() {
+export function loadConversations() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (!saved) return null
-    
-    const data = JSON.parse(saved)
-    
-    // Validate the data structure
-    if (data.messages && Array.isArray(data.messages)) {
-      return {
-        messages: data.messages,
-        lastUpdated: data.lastUpdated,
-        messageCount: data.messageCount || data.messages.length
-      }
-    }
-    return null
+    return saved ? JSON.parse(saved) : []
   } catch (error) {
-    console.error('Failed to load conversation:', error)
-    return null
+    console.error('Failed to load conversations:', error)
+    return []
   }
 }
 
-export function clearConversation() {
+export function clearConversations() {
   try {
     localStorage.removeItem(STORAGE_KEY)
-    return true
   } catch (error) {
-    console.error('Failed to clear conversation:', error)
-    return false
+    console.error('Failed to clear conversations:', error)
   }
 }
 
-export function getConversationInfo() {
+// Sentiment data storage
+export function saveSentiments(sentiments) {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (!saved) return null
-    
-    const data = JSON.parse(saved)
-    return {
-      messageCount: data.messageCount || 0,
-      lastUpdated: data.lastUpdated,
-      hasConversation: data.messages && data.messages.length > 0
-    }
+    localStorage.setItem(SENTIMENT_KEY, JSON.stringify(sentiments))
   } catch (error) {
-    console.error('Failed to get conversation info:', error)
-    return null
+    console.error('Failed to save sentiments:', error)
   }
+}
+
+export function loadSentiments() {
+  try {
+    const saved = localStorage.getItem(SENTIMENT_KEY)
+    return saved ? JSON.parse(saved) : []
+  } catch (error) {
+    console.error('Failed to load sentiments:', error)
+    return []
+  }
+}
+
+export function addSentiment(sentiment) {
+  try {
+    const sentiments = loadSentiments()
+    sentiments.push(sentiment)
+    saveSentiments(sentiments)
+    return sentiments
+  } catch (error) {
+    console.error('Failed to add sentiment:', error)
+    return loadSentiments()
+  }
+}
+
+export function clearSentiments() {
+  try {
+    localStorage.removeItem(SENTIMENT_KEY)
+  } catch (error) {
+    console.error('Failed to clear sentiments:', error)
+  }
+}
+
+export function clearAllData() {
+  clearConversations()
+  clearSentiments()
 } 
